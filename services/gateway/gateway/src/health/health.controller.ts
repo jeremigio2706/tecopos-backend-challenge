@@ -8,6 +8,7 @@ export class HealthController {
       status: 'ok',
       service: 'gateway',
       timestamp: new Date().toISOString(),
+      version: '1.0.0',
     };
   }
 }
