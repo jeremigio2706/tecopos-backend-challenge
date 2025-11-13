@@ -1,0 +1,109 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  postgres-sso:
+    image: postgres:15-alpine
+    container_name: tecopos_postgres_sso
+    environment:
+      POSTGRES_DB: ${SSO_DB_NAME}
+      POSTGRES_USER: ${SSO_DB_USER}
+      POSTGRES_PASSWORD: ${SSO_DB_PASSWORD}
+    ports:
+      - "${SSO_DB_PORT}:5432"
+    volumes:
+      - sso_data:/var/lib/postgresql/data
+    networks:
+      - tecopos_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${SSO_DB_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  gateway:
+    build:
+      context: ./services/gateway/gateway
+      dockerfile: Dockerfile
+    container_name: tecopos_gateway
+    ports:
+      - "${GATEWAY_PORT}:3000"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=3000
+      - SSO_SERVICE_URL=http://sso:3001
+      - ACCOUNTS_SERVICE_URL=http://accounts:3002
+      - RATE_LIMIT_TTL=${RATE_LIMIT_TTL}
+      - RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+    depends_on:
+      sso:
+        condition: service_started
+      accounts:
+        condition: service_started
+    networks:
+      - tecopos_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+
+  sso:
+    build:
+      context: ./services/sso/sso
+      dockerfile: Dockerfile
+    container_name: tecopos_sso
+    ports:
+      - "${SSO_PORT}:3001"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=3001
+      - DATABASE_URL=postgresql://${SSO_DB_USER}:${SSO_DB_PASSWORD}@postgres-sso:5432/${SSO_DB_NAME}
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+    depends_on:
+      postgres-sso:
+        condition: service_healthy
+    networks:
+      - tecopos_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+  accounts:
+    build:
+      context: ./services/accounts/accounts
+      dockerfile: Dockerfile
+    container_name: tecopos_accounts
+    ports:
+      - "${ACCOUNTS_PORT}:3002"
+    environment:
+      - NODE_ENV=${NODE_ENV}
+      - PORT=3002
+      - SSO_SERVICE_URL=http://sso:3001
+      - MOCKAPI_URL=${MOCKAPI_URL}
+      - JWT_SECRET=${JWT_SECRET}
+      - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+    depends_on:
+      - sso
+    networks:
+      - tecopos_network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  sso_data:
+    driver: local
+
+networks:
+  tecopos_network:
+    driver: bridge
