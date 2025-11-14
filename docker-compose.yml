@@ -16,7 +16,7 @@ services:
     networks:
       - tecopos_network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${SSO_DB_USER}"]
+      test: ["CMD-SHELL", "pg_isready -U ${SSO_DB_USER} -d ${SSO_DB_NAME}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,7 +24,7 @@ services:
   gateway:
     build:
       context: ./services/gateway/gateway
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: tecopos_gateway
     ports:
       - "${GATEWAY_PORT}:3000"
@@ -35,6 +35,10 @@ services:
       - ACCOUNTS_SERVICE_URL=http://accounts:3002
       - RATE_LIMIT_TTL=${RATE_LIMIT_TTL}
       - RATE_LIMIT_MAX=${RATE_LIMIT_MAX}
+    volumes:
+      - ./services/gateway/gateway/src:/app/src
+      - ./services/gateway/gateway/tsconfig.json:/app/tsconfig.json
+      - ./services/gateway/gateway/nest-cli.json:/app/nest-cli.json
     depends_on:
       sso:
         condition: service_started
@@ -43,7 +47,7 @@ services:
     networks:
       - tecopos_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3000/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -53,7 +57,7 @@ services:
   sso:
     build:
       context: ./services/sso/sso
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: tecopos_sso
     ports:
       - "${SSO_PORT}:3001"
@@ -63,13 +67,19 @@ services:
       - DATABASE_URL=postgresql://${SSO_DB_USER}:${SSO_DB_PASSWORD}@postgres-sso:5432/${SSO_DB_NAME}
       - JWT_SECRET=${JWT_SECRET}
       - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+    volumes:
+      - ./services/sso/sso/src:/app/src
+      - ./services/sso/sso/prisma:/app/prisma
+      - ./services/sso/sso/tsconfig.json:/app/tsconfig.json
+      - ./services/sso/sso/nest-cli.json:/app/nest-cli.json
+      - ./services/sso/sso/prisma.config.ts:/app/prisma.config.ts
     depends_on:
       postgres-sso:
         condition: service_healthy
     networks:
       - tecopos_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3001/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -78,7 +88,7 @@ services:
   accounts:
     build:
       context: ./services/accounts/accounts
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: tecopos_accounts
     ports:
       - "${ACCOUNTS_PORT}:3002"
@@ -89,12 +99,16 @@ services:
       - MOCKAPI_URL=${MOCKAPI_URL}
       - JWT_SECRET=${JWT_SECRET}
       - WEBHOOK_SECRET=${WEBHOOK_SECRET}
+    volumes:
+      - ./services/accounts/accounts/src:/app/src
+      - ./services/accounts/accounts/tsconfig.json:/app/tsconfig.json
+      - ./services/accounts/accounts/nest-cli.json:/app/nest-cli.json
     depends_on:
       - sso
     networks:
       - tecopos_network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:3002/health', (r) => process.exit(r.statusCode === 200 ? 0 : 1))"]
       interval: 30s
       timeout: 10s
       retries: 3

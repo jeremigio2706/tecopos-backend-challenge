@@ -1,0 +1,22 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Instalar dependencias
+RUN npm ci
+
+# Copiar prisma para generar el cliente
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
+# Copiar el resto del código (será sobrescrito por volúmenes en desarrollo)
+COPY . .
+
+# Exponer puerto
+EXPOSE 3001
+
+# Generar Prisma Client al iniciar y luego ejecutar en modo desarrollo
+CMD sh -c "npx prisma generate && npm run start:dev"

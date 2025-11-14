@@ -1,0 +1,18 @@
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Copiar archivos de dependencias
+COPY package*.json ./
+
+# Instalar dependencias con legacy-peer-deps por compatibilidad
+RUN npm install --legacy-peer-deps
+
+# Copiar el resto del código (será sobrescrito por volúmenes en desarrollo)
+COPY . .
+
+# Exponer puerto
+EXPOSE 3002
+
+# Comando para modo desarrollo con hot reload
+CMD ["npm", "run", "start:dev"]
