@@ -5,7 +5,6 @@ COPY package*.json ./
 COPY prisma ./prisma/
 RUN npm ci
 
-# NO ejecutar prisma generate aquí
 COPY . .
 RUN npm run build
 
@@ -19,4 +18,4 @@ COPY --from=builder /app/package*.json ./
 EXPOSE 3001
 
 # Generar Prisma client y ejecutar migraciones en RUNTIME
-CMD npx prisma generate && npx prisma migrate deploy && node dist/main
+CMD npx prisma generate && npx prisma migrate deploy && npm run start:prod
