@@ -14,7 +14,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 
 @ApiTags('Accounts Proxy')
-@Controller('accounts')
+@Controller()
 @UseGuards(JwtAuthGuard)
 @ApiBearerAuth()
 export class AccountsProxyController {
@@ -29,13 +29,26 @@ export class AccountsProxyController {
       'http://localhost:3002';
   }
 
-  @All('*')
-  @ApiOperation({
-    summary: 'Proxy all requests to Accounts service (requires authentication)',
-  })
-  async proxyToAccounts(@Req() req: Request, @Res() res: Response) {
-    const path = req.url.replace('/accounts', '');
-    const targetUrl = `${this.accountsServiceUrl}${path}`;
+  @All('accounts*')
+  @ApiOperation({ summary: 'Proxy accounts requests' })
+  async proxyAccounts(@Req() req: Request, @Res() res: Response) {
+    return this.proxyRequest(req, res);
+  }
+
+  @All('transactions*')
+  @ApiOperation({ summary: 'Proxy transactions requests' })
+  async proxyTransactions(@Req() req: Request, @Res() res: Response) {
+    return this.proxyRequest(req, res);
+  }
+
+  @All('webhooks*')
+  @ApiOperation({ summary: 'Proxy webhooks requests' })
+  async proxyWebhooks(@Req() req: Request, @Res() res: Response) {
+    return this.proxyRequest(req, res);
+  }
+
+  private async proxyRequest(req: Request, res: Response) {
+    const targetUrl = `${this.accountsServiceUrl}${req.url}`;
 
     try {
       const response = await firstValueFrom(
@@ -46,6 +59,8 @@ export class AccountsProxyController {
           headers: {
             ...req.headers,
             host: new URL(this.accountsServiceUrl).host,
+            // Pasar el user desde el request autenticado
+            'x-user-id': (req as any).user?.id,
           },
         }),
       );

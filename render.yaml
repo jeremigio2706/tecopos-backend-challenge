@@ -1,0 +1,111 @@
+# ======================================
+# TECOPOS BACKEND CHALLENGE
+# Render Blueprint Configuration
+# ======================================
+# Este archivo configura el despliegue completo del sistema de microservicios
+# en Render.com con PostgreSQL, Gateway, SSO y Accounts services.
+
+databases:
+  # PostgreSQL Database para SSO Service
+  - name: tecopos-postgres-sso
+    databaseName: tecopos_sso
+    user: tecopos_user
+    plan: free
+    region: oregon
+    ipAllowList: []
+
+services:
+  # ======================================
+  # API GATEWAY - Punto de entrada principal
+  # ======================================
+  - type: web
+    name: tecopos-gateway
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerfilePath: ./services/gateway/gateway/Dockerfile
+    dockerContext: ./services/gateway/gateway
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3000
+      - key: SSO_SERVICE_URL
+        fromService:
+          type: web
+          name: tecopos-sso
+          property: host
+      - key: ACCOUNTS_SERVICE_URL
+        fromService:
+          type: web
+          name: tecopos-accounts
+          property: host
+      - key: RATE_LIMIT_TTL
+        value: 60
+      - key: RATE_LIMIT_MAX
+        value: 100
+      - key: JWT_SECRET
+        generateValue: true
+        sync: false
+
+  # ======================================
+  # SSO SERVICE - Autenticación y Usuarios
+  # ======================================
+  - type: web
+    name: tecopos-sso
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerfilePath: ./services/sso/sso/Dockerfile
+    dockerContext: ./services/sso/sso
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3001
+      - key: DATABASE_URL
+        fromDatabase:
+          name: tecopos-postgres-sso
+          property: connectionString
+      - key: JWT_SECRET
+        generateValue: true
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 1h
+    buildCommand: npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && node dist/src/main
+
+  # ======================================
+  # ACCOUNTS SERVICE - Cuentas y Transacciones
+  # ======================================
+  - type: web
+    name: tecopos-accounts
+    runtime: docker
+    region: oregon
+    plan: free
+    branch: main
+    dockerfilePath: ./services/accounts/accounts/Dockerfile
+    dockerContext: ./services/accounts/accounts
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 3002
+      - key: SSO_SERVICE_URL
+        fromService:
+          type: web
+          name: tecopos-sso
+          property: host
+      - key: MOCKAPI_URL
+        value: https://6914db823746c71fe049d9f3.mockapi.io/api/v1
+      - key: JWT_SECRET
+        generateValue: true
+        sync: false
+      - key: WEBHOOK_SECRET
+        generateValue: true
+        sync: false

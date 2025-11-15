@@ -1,0 +1,978 @@
+{
+  "info": {
+    "name": "TecoPOS Backend API",
+    "description": "Colección completa de endpoints para el sistema de microservicios TecoPOS Backend Challenge",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "version": "1.0.0"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{access_token}}",
+        "type": "string"
+      }
+    ]
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "gateway_url",
+      "value": "http://localhost:3000",
+      "type": "string"
+    },
+    {
+      "key": "sso_url",
+      "value": "http://localhost:3001",
+      "type": "string"
+    },
+    {
+      "key": "accounts_url",
+      "value": "http://localhost:3002",
+      "type": "string"
+    },
+    {
+      "key": "access_token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "user_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "account_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "transaction_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "webhook_id",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health Checks",
+      "item": [
+        {
+          "name": "Gateway Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{gateway_url}}/health",
+              "host": ["{{gateway_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verifica el estado del API Gateway"
+          },
+          "response": []
+        },
+        {
+          "name": "SSO Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{sso_url}}/health",
+              "host": ["{{sso_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verifica el estado del servicio SSO"
+          },
+          "response": []
+        },
+        {
+          "name": "Accounts Health",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{accounts_url}}/health",
+              "host": ["{{accounts_url}}"],
+              "path": ["health"]
+            },
+            "description": "Verifica el estado del servicio de cuentas"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para verificar el estado de salud de cada microservicio"
+    },
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Register User",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('user_id', response.id);",
+                  "    pm.environment.set('user_email', response.email);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"username\": \"testuser\",\n  \"email\": \"testuser@example.com\",\n  \"password\": \"SecurePass123!\",\n  \"firstName\": \"Test\",\n  \"lastName\": \"User\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/register",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "register"]
+            },
+            "description": "Registra un nuevo usuario en el sistema"
+          },
+          "response": []
+        },
+        {
+          "name": "Login",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    pm.environment.set('access_token', response.accessToken);",
+                  "    pm.collectionVariables.set('access_token', response.accessToken);",
+                  "    console.log('Token guardado:', response.accessToken);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"usernameOrEmail\": \"testuser\",\n  \"password\": \"SecurePass123!\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/auth/login",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "login"]
+            },
+            "description": "Autentica un usuario y obtiene un token JWT"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/auth/profile",
+              "host": ["{{base_url}}"],
+              "path": ["auth", "profile"]
+            },
+            "description": "Obtiene el perfil del usuario autenticado"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints de autenticación y autorización"
+    },
+    {
+      "name": "Accounts",
+      "item": [
+        {
+          "name": "List Accounts",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "    const response = pm.response.json();",
+                  "    if (response.length > 0) {",
+                  "        pm.collectionVariables.set('account_id', response[0].id);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["accounts"]
+            },
+            "description": "Lista todas las cuentas del usuario autenticado"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts/{{account_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["accounts", "{{account_id}}"]
+            },
+            "description": "Obtiene los detalles de una cuenta específica"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Account Balance",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts/{{account_id}}/balance",
+              "host": ["{{base_url}}"],
+              "path": ["accounts", "{{account_id}}", "balance"]
+            },
+            "description": "Obtiene el balance de una cuenta específica"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para gestión de cuentas bancarias"
+    },
+    {
+      "name": "Transactions",
+      "item": [
+        {
+          "name": "Create Deposit Transaction",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('transaction_id', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"deposit\",\n  \"amount\": 1000.50,\n  \"currency\": \"USD\",\n  \"description\": \"Depósito de prueba desde Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"]
+            },
+            "description": "Crea una nueva transacción de depósito"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Withdrawal Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"withdrawal\",\n  \"amount\": 500.00,\n  \"currency\": \"USD\",\n  \"description\": \"Retiro de prueba desde Postman\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"]
+            },
+            "description": "Crea una nueva transacción de retiro"
+          },
+          "response": []
+        },
+        {
+          "name": "Create Transfer Transaction",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"transfer\",\n  \"amount\": 250.00,\n  \"currency\": \"USD\",\n  \"description\": \"Transferencia de prueba\",\n  \"toAccountId\": \"destination-account-id\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"]
+            },
+            "description": "Crea una nueva transacción de transferencia"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Transaction by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transactions/{{transaction_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "{{transaction_id}}"]
+            },
+            "description": "Obtiene los detalles de una transacción específica"
+          },
+          "response": []
+        },
+        {
+          "name": "List Transactions with Pagination",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transactions?page=1&limit=10&accountId={{account_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1",
+                  "description": "Número de página"
+                },
+                {
+                  "key": "limit",
+                  "value": "10",
+                  "description": "Elementos por página"
+                },
+                {
+                  "key": "accountId",
+                  "value": "{{account_id}}",
+                  "description": "Filtrar por cuenta"
+                }
+              ]
+            },
+            "description": "Lista transacciones con paginación y filtros"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para gestión de transacciones financieras"
+    },
+    {
+      "name": "Webhooks",
+      "item": [
+        {
+          "name": "Subscribe to Webhook",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    const response = pm.response.json();",
+                  "    pm.collectionVariables.set('webhook_id', response.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://webhook.site/unique-id-here\",\n  \"events\": [\"transaction.created\", \"transaction.updated\"],\n  \"description\": \"Webhook de prueba para transacciones\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/subscribe",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "subscribe"]
+            },
+            "description": "Crea una nueva suscripción a webhook. Usa https://webhook.site para pruebas."
+          },
+          "response": []
+        },
+        {
+          "name": "List Webhook Subscriptions",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webhooks",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks"]
+            },
+            "description": "Lista todas las suscripciones de webhook del usuario"
+          },
+          "response": []
+        },
+        {
+          "name": "Get Webhook by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webhooks/{{webhook_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "{{webhook_id}}"]
+            },
+            "description": "Obtiene los detalles de una suscripción específica"
+          },
+          "response": []
+        },
+        {
+          "name": "Unsubscribe Webhook",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/webhooks/{{webhook_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "{{webhook_id}}"]
+            },
+            "description": "Elimina una suscripción de webhook"
+          },
+          "response": []
+        }
+      ],
+      "description": "Endpoints para gestión de webhooks y notificaciones"
+    },
+    {
+      "name": "Validation Tests",
+      "item": [
+        {
+          "name": "Invalid Currency Code",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"deposit\",\n  \"amount\": 100,\n  \"currency\": \"INVALID\",\n  \"description\": \"Test de validación\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"]
+            },
+            "description": "Prueba validación de código de moneda (debe fallar)"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Amount (Negative)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"deposit\",\n  \"amount\": -100,\n  \"currency\": \"USD\",\n  \"description\": \"Test de validación\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"]
+            },
+            "description": "Prueba validación de monto negativo (debe fallar)"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Amount (Too Large)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"deposit\",\n  \"amount\": 10000000,\n  \"currency\": \"USD\",\n  \"description\": \"Test de validación\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"]
+            },
+            "description": "Prueba validación de monto demasiado grande (debe fallar)"
+          },
+          "response": []
+        },
+        {
+          "name": "Missing Required Fields",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"deposit\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/transactions",
+              "host": ["{{base_url}}"],
+              "path": ["transactions"]
+            },
+            "description": "Prueba campos requeridos faltantes (debe fallar)"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Webhook URL",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"not-a-valid-url\",\n  \"events\": [\"transaction.created\"]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/subscribe",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "subscribe"]
+            },
+            "description": "Prueba validación de URL de webhook (debe fallar)"
+          },
+          "response": []
+        },
+        {
+          "name": "Empty Events Array",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"url\": \"https://webhook.site/test\",\n  \"events\": []\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/webhooks/subscribe",
+              "host": ["{{base_url}}"],
+              "path": ["webhooks", "subscribe"]
+            },
+            "description": "Prueba validación de array de eventos vacío (debe fallar)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Tests de validación de datos de entrada"
+    },
+    {
+      "name": "Error Handling",
+      "item": [
+        {
+          "name": "Invalid Account ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts/invalid-account-id",
+              "host": ["{{base_url}}"],
+              "path": ["accounts", "invalid-account-id"]
+            },
+            "description": "Prueba manejo de ID de cuenta inválido"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Transaction ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/transactions/invalid-transaction-id",
+              "host": ["{{base_url}}"],
+              "path": ["transactions", "invalid-transaction-id"]
+            },
+            "description": "Prueba manejo de ID de transacción inválido"
+          },
+          "response": []
+        },
+        {
+          "name": "Unauthorized Access",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["accounts"]
+            },
+            "description": "Prueba acceso sin autenticación (debe fallar con 401)"
+          },
+          "response": []
+        },
+        {
+          "name": "Invalid Token",
+          "request": {
+            "auth": {
+              "type": "bearer",
+              "bearer": [
+                {
+                  "key": "token",
+                  "value": "invalid.token.here",
+                  "type": "string"
+                }
+              ]
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/accounts",
+              "host": ["{{base_url}}"],
+              "path": ["accounts"]
+            },
+            "description": "Prueba con token JWT inválido (debe fallar con 401)"
+          },
+          "response": []
+        }
+      ],
+      "description": "Tests de manejo de errores"
+    },
+    {
+      "name": "Integration Tests",
+      "item": [
+        {
+          "name": "Complete Flow - Register, Login, Create Transaction",
+          "item": [
+            {
+              "name": "1. Register New User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "if (pm.response.code === 201) {",
+                      "    const response = pm.response.json();",
+                      "    pm.collectionVariables.set('test_user_id', response.id);",
+                      "    pm.collectionVariables.set('test_email', response.email);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"username\": \"integration_test_{{$timestamp}}\",\n  \"email\": \"integration{{$timestamp}}@test.com\",\n  \"password\": \"TestPass123!\",\n  \"firstName\": \"Integration\",\n  \"lastName\": \"Test\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/register",
+                  "host": ["{{base_url}}"],
+                  "path": ["auth", "register"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "2. Login with New User",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "pm.test('Response has accessToken', function () {",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response).to.have.property('accessToken');",
+                      "    pm.collectionVariables.set('access_token', response.accessToken);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "auth": {
+                  "type": "noauth"
+                },
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"usernameOrEmail\": \"{{test_email}}\",\n  \"password\": \"TestPass123!\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/auth/login",
+                  "host": ["{{base_url}}"],
+                  "path": ["auth", "login"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "3. Get Accounts",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 200', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "});",
+                      "",
+                      "const response = pm.response.json();",
+                      "if (response.length > 0) {",
+                      "    pm.collectionVariables.set('account_id', response[0].id);",
+                      "}"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/accounts",
+                  "host": ["{{base_url}}"],
+                  "path": ["accounts"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "4. Subscribe to Webhook",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Status code is 201', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "const response = pm.response.json();",
+                      "pm.collectionVariables.set('webhook_id', response.id);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"url\": \"https://webhook.site/unique-id\",\n  \"events\": [\"transaction.created\"],\n  \"description\": \"Integration test webhook\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/webhooks/subscribe",
+                  "host": ["{{base_url}}"],
+                  "path": ["webhooks", "subscribe"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "5. Create Transaction",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Transaction created', function () {",
+                      "    pm.response.to.have.status(201);",
+                      "});",
+                      "",
+                      "const response = pm.response.json();",
+                      "pm.collectionVariables.set('transaction_id', response.id);"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"accountId\": \"{{account_id}}\",\n  \"type\": \"deposit\",\n  \"amount\": 500.00,\n  \"currency\": \"USD\",\n  \"description\": \"Integration test transaction\"\n}"
+                },
+                "url": {
+                  "raw": "{{base_url}}/transactions",
+                  "host": ["{{base_url}}"],
+                  "path": ["transactions"]
+                }
+              },
+              "response": []
+            },
+            {
+              "name": "6. Verify Transaction",
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "exec": [
+                      "pm.test('Transaction retrieved successfully', function () {",
+                      "    pm.response.to.have.status(200);",
+                      "    const response = pm.response.json();",
+                      "    pm.expect(response).to.have.property('id');",
+                      "    pm.expect(response.amount).to.equal(500);",
+                      "});"
+                    ],
+                    "type": "text/javascript"
+                  }
+                }
+              ],
+              "request": {
+                "method": "GET",
+                "header": [],
+                "url": {
+                  "raw": "{{base_url}}/transactions/{{transaction_id}}",
+                  "host": ["{{base_url}}"],
+                  "path": ["transactions", "{{transaction_id}}"]
+                }
+              },
+              "response": []
+            }
+          ],
+          "description": "Flujo completo de integración desde registro hasta creación de transacción"
+        }
+      ],
+      "description": "Tests de integración end-to-end"
+    }
+  ],
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script que se ejecuta antes de cada request",
+          "// Puedes agregar lógica común aquí"
+        ]
+      }
+    },
+    {
+      "listen": "test",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Script que se ejecuta después de cada request",
+          "// Puedes agregar validaciones comunes aquí"
+        ]
+      }
+    }
+  ]
+}

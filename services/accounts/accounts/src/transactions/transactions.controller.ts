@@ -13,12 +13,14 @@ import {
   ApiOperation,
   ApiBearerAuth,
   ApiResponse,
+  ApiQuery,
 } from '@nestjs/swagger';
 import { TransactionsService } from './transactions.service';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { CreateTransactionDto } from './dto/create-transaction.dto';
 import { TransactionResponseDto } from './dto/transaction-response.dto';
 import type { AuthenticatedRequest } from '../auth/interfaces/authenticated-request.interface';
+import { PaginationDto } from '../common/dto/pagination.dto';
 
 @ApiTags('Transactions')
 @Controller('transactions')
@@ -28,13 +30,16 @@ export class TransactionsController {
   constructor(private readonly transactionsService: TransactionsService) {}
 
   @Get()
-  @ApiOperation({ summary: 'List transactions for an account' })
+  @ApiOperation({ summary: 'List transactions for an account with pagination' })
   @ApiResponse({ status: 200, type: [TransactionResponseDto] })
+  @ApiQuery({ name: 'page', required: false, type: Number, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, type: Number, example: 10 })
   async findAll(
     @Query('accountId') accountId: string,
+    @Query() pagination: PaginationDto,
     @Req() req: AuthenticatedRequest,
   ): Promise<TransactionResponseDto[]> {
-    return this.transactionsService.findAll(accountId, req.user.id);
+    return this.transactionsService.findAll(accountId, req.user.id, pagination);
   }
 
   @Post()

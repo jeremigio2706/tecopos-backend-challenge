@@ -67,39 +67,80 @@ export class WebhooksService {
       (sub) => sub.isActive && sub.events.includes('transaction.created'),
     );
 
-    const notifications = activeSubscriptions.map(async (subscription) => {
-      const payload = {
-        event: 'transaction.created',
-        timestamp: new Date().toISOString(),
-        data: transaction,
-      };
+    console.log(
+      `Notifying ${activeSubscriptions.length} webhooks for transaction ${transaction.id}`,
+    );
 
-      const signature = this.generateSignature(
-        JSON.stringify(payload),
-        subscription.secret,
-      );
-
-      try {
-        await firstValueFrom(
-          this.httpService.post(subscription.url, payload, {
-            headers: {
-              'Content-Type': 'application/json',
-              'X-Webhook-Signature': signature,
-            },
-            timeout: 5000,
-          }),
-        );
-      } catch (error: unknown) {
-        const message =
-          error instanceof Error ? error.message : 'Unknown error';
-        console.error(
-          `Failed to send webhook to ${subscription.url}:`,
-          message,
-        );
-      }
-    });
+    const notifications = activeSubscriptions.map(async (subscription) =>
+      this.sendWebhookWithRetry(subscription, transaction),
+    );
 
     await Promise.allSettled(notifications);
+  }
+
+  private async sendWebhookWithRetry(
+    subscription: WebhookSubscription,
+    transaction: TransactionResponseDto,
+    attempt: number = 1,
+  ): Promise<void> {
+    const payload = {
+      event: 'transaction.created',
+      timestamp: new Date().toISOString(),
+      data: transaction,
+    };
+
+    const signature = this.generateSignature(
+      JSON.stringify(payload),
+      subscription.secret,
+    );
+
+    const maxAttempts = 3;
+    const delays = [1000, 2000, 4000]; // 1s, 2s, 4s
+
+    try {
+      console.log(
+        `[Webhook] Attempt ${attempt}/${maxAttempts} - Sending to ${subscription.url}`,
+      );
+
+      await firstValueFrom(
+        this.httpService.post(subscription.url, payload, {
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Webhook-Signature': signature,
+            'X-Webhook-Attempt': attempt.toString(),
+          },
+          timeout: 5000,
+        }),
+      );
+
+      console.log(
+        `[Webhook] SUCCESS - Attempt ${attempt} to ${subscription.url}`,
+      );
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Unknown error';
+      console.error(
+        `[Webhook] FAILED - Attempt ${attempt}/${maxAttempts} to ${subscription.url}: ${message}`,
+      );
+
+      if (attempt < maxAttempts) {
+        const delay = delays[attempt - 1];
+        console.log(`[Webhook] Retrying in ${delay}ms...`);
+        await this.sleep(delay);
+        return this.sendWebhookWithRetry(
+          subscription,
+          transaction,
+          attempt + 1,
+        );
+      } else {
+        console.error(
+          `[Webhook] EXHAUSTED - All ${maxAttempts} attempts failed for ${subscription.url}`,
+        );
+      }
+    }
+  }
+
+  private sleep(ms: number): Promise<void> {
+    return new Promise((resolve) => setTimeout(resolve, ms));
   }
 
   private generateSignature(payload: string, secret: string): string {
